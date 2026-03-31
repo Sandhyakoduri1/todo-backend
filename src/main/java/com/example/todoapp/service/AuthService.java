@@ -7,6 +7,7 @@ import com.example.todoapp.repository.UserRepository;
 import com.example.todoapp.security.JwtUtil;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.example.todoapp.dto.ForgotPasswordRequest;
 
 @Service
 public class AuthService {
@@ -57,6 +58,7 @@ public class AuthService {
         userRepository.save(user);
 
         return jwtUtil.generateToken(user.getEmail());
+
     }
     public String login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
@@ -67,5 +69,28 @@ public class AuthService {
         }
 
         return jwtUtil.generateToken(user.getEmail());
+    }
+
+    public String forgotPassword(ForgotPasswordRequest request) {
+
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (request.getNewPassword() == null || request.getNewPassword().length() < 6) {
+            throw new RuntimeException("Password must be at least 6 characters");
+        }
+
+        if (request.getConfirmPassword() == null || request.getConfirmPassword().isEmpty()) {
+            throw new RuntimeException("Confirm password is required");
+        }
+
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("Password and confirm password do not match");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        return "Password reset successful";
     }
 }

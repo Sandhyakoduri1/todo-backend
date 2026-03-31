@@ -4,6 +4,7 @@ import com.example.todoapp.dto.LoginRequest;
 import com.example.todoapp.dto.RegisterRequest;
 import com.example.todoapp.service.AuthService;
 import org.springframework.web.bind.annotation.*;
+import com.example.todoapp.dto.ForgotPasswordRequest;
 
 @RestController
 @RequestMapping("/auth")
@@ -23,5 +24,10 @@ public class AuthController {
     @PostMapping("/login")
     public String login(@RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/forgot-password")
+    public String forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        return authService.forgotPassword(request);
     }
 }
