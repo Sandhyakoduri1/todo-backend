@@ -18,7 +18,7 @@ public class CorsConfig {
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:3000",
                 "http://localhost:3001",
-                "https://bright-frangollo-682273.netlify.app"
+                "https://*.netlify.app"
         ));
 
         configuration.setAllowedMethods(List.of(
