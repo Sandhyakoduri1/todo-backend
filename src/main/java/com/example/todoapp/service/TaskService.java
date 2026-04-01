@@ -5,12 +5,11 @@ import com.example.todoapp.exception.ResourceNotFoundException;
 import com.example.todoapp.model.Task;
 import com.example.todoapp.model.TaskPriority;
 import com.example.todoapp.model.TaskStatus;
+import com.example.todoapp.model.User;
 import com.example.todoapp.repository.TaskRepository;
+import com.example.todoapp.repository.UserRepository;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -20,39 +19,41 @@ import java.util.List;
 public class TaskService {
 
     private final TaskRepository taskRepository;
+    private final UserRepository userRepository;
 
-    public TaskService(TaskRepository taskRepository) {
+    public TaskService(TaskRepository taskRepository, UserRepository userRepository) {
         this.taskRepository = taskRepository;
+        this.userRepository = userRepository;
     }
 
-    public Task createTask(TaskRequest request) {
+    public Task createTask(TaskRequest request, String email) {
         Task task = new Task();
+
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         task.setStatus(TaskStatus.PENDING);
         task.setPriority(request.getPriority() != null ? request.getPriority() : TaskPriority.MEDIUM);
         task.setDueDate(request.getDueDate());
-        task.setCreatedAt(LocalDateTime.now());
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        task.setUser(user);
 
         return taskRepository.save(task);
     }
 
-    public Page<Task> getTasksWithPagination(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return taskRepository.findAll(pageable);
+    public List<Task> getAllTasks(String email) {
+        return taskRepository.findByUserEmail(email);
     }
 
-    public List<Task> getAllTasks() {
-        return taskRepository.findAll();
-    }
-
-    public Task getTaskById(Long id) {
-        return taskRepository.findById(id)
+    public Task getTaskById(Long id, String email) {
+        return taskRepository.findByIdAndUserEmail(id, email)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found with id: " + id));
     }
 
-    public Task updateTask(Long id, TaskRequest request) {
-        Task task = getTaskById(id);
+    public Task updateTask(Long id, TaskRequest request, String email) {
+        Task task = getTaskById(id, email);
         task.setTitle(request.getTitle());
         task.setDescription(request.getDescription());
         task.setPriority(request.getPriority() != null ? request.getPriority() : TaskPriority.MEDIUM);
@@ -61,56 +62,56 @@ public class TaskService {
         return taskRepository.save(task);
     }
 
-    public Task markTaskAsCompleted(Long id) {
-        Task task = getTaskById(id);
+    public Task markComplete(Long id, String email) {
+        Task task = getTaskById(id, email);
         task.setStatus(TaskStatus.COMPLETED);
-
         return taskRepository.save(task);
     }
 
-    public void deleteTask(Long id) {
-        Task task = getTaskById(id);
+    public Task markPending(Long id, String email) {
+        Task task = getTaskById(id, email);
+        task.setStatus(TaskStatus.PENDING);
+        return taskRepository.save(task);
+    }
+
+    public void deleteTask(Long id, String email) {
+        Task task = getTaskById(id, email);
         taskRepository.delete(task);
     }
 
-    public List<Task> getTasksByStatus(TaskStatus status) {
-        return taskRepository.findByStatus(status);
+    public List<Task> getOverdueTasks(String email) {
+        return taskRepository.findByUserEmailAndDueDateBeforeAndStatusNot(
+                email,
+                LocalDate.now(),
+                TaskStatus.COMPLETED
+        );
     }
 
-    public List<Task> searchTasksByTitle(String title) {
-        return taskRepository.findByTitleContainingIgnoreCase(title);
+    public List<Task> getTasksDueToday(String email) {
+        return taskRepository.findByUserEmailAndDueDateAndStatusNot(
+                email,
+                LocalDate.now(),
+                TaskStatus.COMPLETED
+        );
     }
 
-    public List<Task> getTasksByPriority(TaskPriority priority) {
-        return taskRepository.findByPriority(priority);
+    public List<Task> getTasksDueThisWeek(String email) {
+        LocalDate today = LocalDate.now();
+        LocalDate endOfWeek = today.plusDays(6);
+
+        return taskRepository.findByUserEmailAndDueDateBetweenAndStatusNot(
+                email,
+                today,
+                endOfWeek,
+                TaskStatus.COMPLETED
+        );
     }
 
-    public List<Task> getTasksSortedByDueDate(String direction) {
+    public List<Task> getTasksSortedByDueDate(String email, String direction) {
         Sort sort = direction.equalsIgnoreCase("desc")
                 ? Sort.by("dueDate").descending()
                 : Sort.by("dueDate").ascending();
 
-        return taskRepository.findAll(sort);
-    }
-
-    public List<Task> getOverdueTasks() {
-        return taskRepository.findByDueDateBeforeAndStatusNot(LocalDate.now(), TaskStatus.COMPLETED);
-    }
-
-    public List<Task> getTasksDueToday() {
-        return taskRepository.findByDueDateAndStatusNot(LocalDate.now(), TaskStatus.COMPLETED);
-    }
-
-    public Task markTaskAsPending(Long id) {
-        Task task = getTaskById(id);
-        task.setStatus(TaskStatus.PENDING);
-        return taskRepository.save(task);
-    }
-
-    public List<Task> getTasksDueThisWeek() {
-        LocalDate today = LocalDate.now();
-        LocalDate endOfWeek = today.plusDays(6);
-
-        return taskRepository.findByDueDateBetweenAndStatusNot(today, endOfWeek, TaskStatus.COMPLETED);
+        return taskRepository.findByUserEmail(email, sort);
     }
 }

@@ -2,18 +2,12 @@ package com.example.todoapp.controller;
 
 import com.example.todoapp.dto.TaskRequest;
 import com.example.todoapp.model.Task;
-import com.example.todoapp.model.TaskPriority;
-import com.example.todoapp.model.TaskStatus;
 import com.example.todoapp.service.TaskService;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.data.domain.Page;
-
 
 import java.util.List;
 
-@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/tasks")
 public class TaskController {
@@ -24,82 +18,63 @@ public class TaskController {
         this.taskService = taskService;
     }
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public Task createTask(@Valid @RequestBody TaskRequest request) {
-        return taskService.createTask(request);
-    }
-
     @GetMapping
-    public List<Task> getAllTasks() {
-        return taskService.getAllTasks();
+    public List<Task> getAllTasks(Authentication authentication) {
+        String email = authentication.getName();
+        return taskService.getAllTasks(email);
     }
 
-    @GetMapping("/paginated")
-    public Page<Task> getTasksWithPagination(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size) {
-        return taskService.getTasksWithPagination(page, size);
-    }
-
-    @PutMapping("/{id}/pending")
-    public Task markTaskAsPending(@PathVariable Long id) {
-        return taskService.markTaskAsPending(id);
-    }
-
-    @GetMapping("/{id}")
-    public Task getTaskById(@PathVariable Long id) {
-        return taskService.getTaskById(id);
+    @PostMapping
+    public Task createTask(@RequestBody TaskRequest request, Authentication authentication) {
+        String email = authentication.getName();
+        return taskService.createTask(request, email);
     }
 
     @PutMapping("/{id}")
-    public Task updateTask(@PathVariable Long id, @Valid @RequestBody TaskRequest request) {
-        return taskService.updateTask(id, request);
+    public Task updateTask(@PathVariable Long id,
+                           @RequestBody TaskRequest request,
+                           Authentication authentication) {
+        String email = authentication.getName();
+        return taskService.updateTask(id, request, email);
     }
 
     @PutMapping("/{id}/complete")
-    public Task markTaskAsCompleted(@PathVariable Long id) {
-        return taskService.markTaskAsCompleted(id);
+    public Task markComplete(@PathVariable Long id, Authentication authentication) {
+        String email = authentication.getName();
+        return taskService.markComplete(id, email);
+    }
+
+    @PutMapping("/{id}/pending")
+    public Task markPending(@PathVariable Long id, Authentication authentication) {
+        String email = authentication.getName();
+        return taskService.markPending(id, email);
     }
 
     @DeleteMapping("/{id}")
-    public String deleteTask(@PathVariable Long id) {
-        taskService.deleteTask(id);
-        return "Task deleted successfully";
-    }
-
-    @GetMapping("/status/{status}")
-    public List<Task> getTasksByStatus(@PathVariable TaskStatus status) {
-        return taskService.getTasksByStatus(status);
-    }
-
-    @GetMapping("/search")
-    public List<Task> searchTasksByTitle(@RequestParam String title) {
-        return taskService.searchTasksByTitle(title);
-    }
-
-    @GetMapping("/priority/{priority}")
-    public List<Task> getTasksByPriority(@PathVariable TaskPriority priority) {
-        return taskService.getTasksByPriority(priority);
-    }
-
-    @GetMapping("/sort/dueDate")
-    public List<Task> getTasksSortedByDueDate(@RequestParam(defaultValue = "asc") String direction) {
-        return taskService.getTasksSortedByDueDate(direction);
+    public void deleteTask(@PathVariable Long id, Authentication authentication) {
+        String email = authentication.getName();
+        taskService.deleteTask(id, email);
     }
 
     @GetMapping("/overdue")
-    public List<Task> getOverdueTasks() {
-        return taskService.getOverdueTasks();
+    public List<Task> getOverdueTasks(Authentication authentication) {
+        return taskService.getOverdueTasks(authentication.getName());
     }
 
     @GetMapping("/due-today")
-    public List<Task> getTasksDueToday() {
-        return taskService.getTasksDueToday();
+    public List<Task> getTasksDueToday(Authentication authentication) {
+        return taskService.getTasksDueToday(authentication.getName());
     }
 
     @GetMapping("/due-this-week")
-    public List<Task> getTasksDueThisWeek() {
-        return taskService.getTasksDueThisWeek();
+    public List<Task> getTasksDueThisWeek(Authentication authentication) {
+        return taskService.getTasksDueThisWeek(authentication.getName());
+    }
+
+    @GetMapping("/sort-by-due-date")
+    public List<Task> getTasksSortedByDueDate(
+            @RequestParam(defaultValue = "asc") String direction,
+            Authentication authentication) {
+        return taskService.getTasksSortedByDueDate(authentication.getName(), direction);
     }
 }

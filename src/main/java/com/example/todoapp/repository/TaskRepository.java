@@ -1,27 +1,38 @@
 package com.example.todoapp.repository;
 
 import com.example.todoapp.model.Task;
-import com.example.todoapp.model.TaskPriority;
 import com.example.todoapp.model.TaskStatus;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
-    List<Task> findByStatus(TaskStatus status);
+    List<Task> findByUserEmail(String email);
 
-    List<Task> findByTitleContainingIgnoreCase(String title);
+    List<Task> findByUserEmail(String email, Sort sort);
 
-    List<Task> findByPriority(TaskPriority priority);
+    Optional<Task> findByIdAndUserEmail(Long id, String email);
 
-    List<Task> findByDueDateBeforeAndStatusNot(LocalDate date, TaskStatus status);
+    List<Task> findByUserEmailAndDueDateBeforeAndStatusNot(
+            String email,
+            LocalDate dueDate,
+            TaskStatus status
+    );
 
-    List<Task> findByDueDateAndStatusNot(LocalDate date, TaskStatus status);
+    List<Task> findByUserEmailAndDueDateAndStatusNot(
+            String email,
+            LocalDate dueDate,
+            TaskStatus status
+    );
 
-    List<Task> findByDueDateBetweenAndStatusNot(LocalDate startDate, LocalDate endDate, TaskStatus status);
-
-    List<Task> findAll(Sort sort);
+    List<Task> findByUserEmailAndDueDateBetweenAndStatusNot(
+            String email,
+            LocalDate startDate,
+            LocalDate endDate,
+            TaskStatus status
+    );
 }
